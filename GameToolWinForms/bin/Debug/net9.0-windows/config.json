@@ -1,5 +1,18 @@
 {
-  "LastUpdated": "2026-04-21T13:18:15.4686113+08:00",
-  "Mods": [],
+  "LastUpdated": "2026-04-21T21:25:20.7037685+08:00",
+  "Mods": [
+    {
+      "Id": 1,
+      "Name": "Black Myth: Wukong Trainer",
+      "Url": "https://flingtrainer.com/trainer/black-myth-wukong-trainer/",
+      "Game": "Black Myth: Wukong",
+      "AddedDate": "2026-04-21T19:18:18.8087810+08:00",
+      "Downloaded": true,
+      "FilePath": "E:\\TraeProject\\GameTool\\GameToolWinForms\\bin\\Debug\\net9.0-windows\\library\\Black Myth Wukong v1.0-v1.0.20 Plus 44 Trainer.exe",
+      "DownloadDate": "2026-04-21",
+      "FileName": "Black Myth Wukong v1.0-v1.0.20 Plus 44 Trainer.exe",
+      "UploadDate": "2025-10-17 10:38"
+    }
+  ],
   "DownloadDirectory": "E:\\TraeProject\\GameTool\\GameToolWinForms\\bin\\Debug\\net9.0-windows\\library"
 }

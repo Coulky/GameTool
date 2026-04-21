@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GameToolWinForms")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a71a7003cdf090009f1fbcadcf178a58a11e5a59")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+acc6262ecaa35e48339247ec1160f719dc4502a3")]
 [assembly: System.Reflection.AssemblyProductAttribute("GameToolWinForms")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GameToolWinForms")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

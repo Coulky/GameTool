@@ -29,3 +29,5 @@ E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\refint\GameToo
 E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\GameToolWinForms.pdb
 E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\GameToolWinForms.genruntimeconfig.cache
 E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\ref\GameToolWinForms.dll
+E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\GameToolWinForms.SearchModsForm.resources
+E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\GameToolWinForms.Index.resources
