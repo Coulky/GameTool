@@ -1129,7 +1129,7 @@ public partial class Form1 : Form
         }
     }
 
-    private async Task GetFlingtrainerModsAsync()
+    private Task GetFlingtrainerModsAsync()
     {
         try
         {
@@ -1146,6 +1146,8 @@ public partial class Form1 : Form
             // 发生错误时，将 allModsList 设为空列表
             allModsList = new List<FlingtrainerMod>();
         }
+        
+        return Task.CompletedTask;
     }
 
     private async Task<List<FlingtrainerMod>> GetModsFromFlingtrainerCSharpAsync()
@@ -1568,7 +1570,7 @@ public partial class Form1 : Form
                                     try
                                     {
                                         // 获取文章发布时间
-                                        string articlePublishDate = await GetArticlePublishDateAsync(mod.Url);
+                                        string articlePublishDate = await GetArticlePublishDateAsync(mod.Url ?? "");
                                         Console.WriteLine($"获取到文章发布时间: {articlePublishDate}");
                                         
                                         // 解析日期获取年份和月份
