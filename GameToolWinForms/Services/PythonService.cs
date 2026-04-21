@@ -9,7 +9,7 @@ namespace GameToolWinForms.Services
 {
     public class PythonService
     {
-        private readonly string pythonPath;
+        private readonly string? pythonPath;
         private readonly string pythonScriptsPath;
 
         public PythonService()
@@ -20,10 +20,10 @@ namespace GameToolWinForms.Services
             pythonScriptsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Python");
         }
 
-        private string FindPythonExecutable()
+        private string? FindPythonExecutable()
         {
             // 尝试在环境变量中查找 Python
-            string pythonPath = Environment.GetEnvironmentVariable("PATH")?
+            string? pythonPath = Environment.GetEnvironmentVariable("PATH")?
                 .Split(Path.PathSeparator)
                 .Select(p => Path.Combine(p, "python.exe"))
                 .FirstOrDefault(File.Exists);

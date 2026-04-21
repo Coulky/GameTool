@@ -1,3 +1,6 @@
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\runtimes\win-x86\native\WebView2Loader.dll
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\runtimes\win-x64\native\WebView2Loader.dll
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\runtimes\win-arm64\native\WebView2Loader.dll
 E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\logo.ico
 E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\GameToolWinForms.exe
 E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\GameToolWinForms.deps.json
@@ -6,6 +9,12 @@ E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\GameToolWinFor
 E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\GameToolWinForms.pdb
 E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\HtmlAgilityPack.dll
 E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\Newtonsoft.Json.dll
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\Microsoft.Web.WebView2.Core.dll
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\Microsoft.Web.WebView2.WinForms.dll
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\Microsoft.Web.WebView2.Wpf.dll
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\Microsoft.Web.WebView2.Core.xml
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\Microsoft.Web.WebView2.WinForms.xml
+E:\TraeProject\GameTool\GameToolWinForms\bin\Debug\net9.0-windows\Microsoft.Web.WebView2.Wpf.xml
 E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\GameToolWinForms.csproj.AssemblyReference.cache
 E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\GameToolWinForms.Form1.resources
 E:\TraeProject\GameTool\GameToolWinForms\obj\Debug\net9.0-windows\GameToolWinForms.csproj.GenerateResource.cache

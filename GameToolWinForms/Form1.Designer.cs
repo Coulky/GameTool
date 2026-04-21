@@ -33,21 +33,26 @@ partial class Form1
         ListModsButton = new ToolStripButton();
         SearchModLibraryButton = new ToolStripButton();
         listView1 = new ListView();
-        columnHeader1 = new ColumnHeader();
         columnHeader2 = new ColumnHeader();
-        columnHeader3 = new ColumnHeader();
-        columnHeader4 = new ColumnHeader();
         columnHeader5 = new ColumnHeader();
+        columnHeader8 = new ColumnHeader();
+        columnHeader6 = new ColumnHeader();
+        columnHeader7 = new ColumnHeader();
         statusStrip1 = new StatusStrip();
         ModCountTextBlock = new ToolStripStatusLabel();
         OpenDownloadDirButton = new ToolStripButton();
+        searchPanel = new Panel();
+        btnSearch = new Button();
+        txtSearch = new TextBox();
+        alphabetPanel = new FlowLayoutPanel();
         toolStrip1.SuspendLayout();
         statusStrip1.SuspendLayout();
+        searchPanel.SuspendLayout();
         SuspendLayout();
         // 
         // toolStrip1
         // 
-        toolStrip1.Items.AddRange(new ToolStripItem[] { ListModsButton, SearchModLibraryButton });
+        toolStrip1.Items.AddRange(new ToolStripItem[] { ListModsButton, SearchModLibraryButton, OpenDownloadDirButton });
         toolStrip1.Location = new Point(0, 0);
         toolStrip1.Name = "toolStrip1";
         toolStrip1.Size = new Size(1000, 25);
@@ -70,45 +75,77 @@ partial class Form1
         SearchModLibraryButton.Text = "修改器库";
         SearchModLibraryButton.Click += SearchModLibraryButton_Click;
         // 
+        // searchPanel
+        // 
+        searchPanel.Controls.Add(btnSearch);
+        searchPanel.Controls.Add(txtSearch);
+        searchPanel.Location = new Point(10, 30);
+        searchPanel.Name = "searchPanel";
+        searchPanel.Size = new Size(980, 40);
+        searchPanel.TabIndex = 3;
+        // 
+        // btnSearch
+        // 
+        btnSearch.Location = new Point(880, 5);
+        btnSearch.Name = "btnSearch";
+        btnSearch.Size = new Size(90, 30);
+        btnSearch.TabIndex = 1;
+        btnSearch.Text = "搜索";
+        btnSearch.UseVisualStyleBackColor = true;
+        // 
+        // txtSearch
+        // 
+        txtSearch.Location = new Point(10, 5);
+        txtSearch.Name = "txtSearch";
+        txtSearch.Size = new Size(860, 23);
+        txtSearch.TabIndex = 0;
+        // 
+        // alphabetPanel
+        // 
+        alphabetPanel.Location = new Point(10, 75);
+        alphabetPanel.Name = "alphabetPanel";
+        alphabetPanel.Size = new Size(980, 30);
+        alphabetPanel.TabIndex = 4;
+        // 
         // listView1
         // 
-        listView1.Columns.AddRange(new ColumnHeader[] { columnHeader1, columnHeader2, columnHeader3, columnHeader4, columnHeader5 });
+        listView1.Columns.AddRange(new ColumnHeader[] { columnHeader2, columnHeader5, columnHeader8, columnHeader6, columnHeader7 });
         listView1.FullRowSelect = true;
-        listView1.Location = new Point(10, 30);
+        listView1.Location = new Point(10, 110);
         listView1.Name = "listView1";
-        listView1.Size = new Size(980, 500);
+        listView1.Size = new Size(980, 420);
         listView1.TabIndex = 1;
         listView1.UseCompatibleStateImageBehavior = false;
         listView1.View = View.Details;
         // 
-        // columnHeader1
-        // 
-        columnHeader1.Text = "ID";
-        columnHeader1.Width = 50;
-        // 
         // columnHeader2
         // 
         columnHeader2.Text = "名称";
-        columnHeader2.Width = 200;
-        // 
-        // columnHeader3
-        // 
-        columnHeader3.Text = "游戏";
-        columnHeader3.Width = 150;
-        // 
-        // columnHeader4
-        // 
-        columnHeader4.Text = "状态";
-        columnHeader4.Width = 80;
+        columnHeader2.Width = 400;
         // 
         // columnHeader5
         // 
         columnHeader5.Text = "添加日期";
         columnHeader5.Width = 100;
         // 
+        // columnHeader8
+        // 
+        columnHeader8.Text = "启动";
+        columnHeader8.Width = 80;
+        // 
+        // columnHeader6
+        // 
+        columnHeader6.Text = "更新";
+        columnHeader6.Width = 80;
+        // 
+        // columnHeader7
+        // 
+        columnHeader7.Text = "删除";
+        columnHeader7.Width = 80;
+        // 
         // statusStrip1
         // 
-        statusStrip1.Items.AddRange(new ToolStripItem[] { ModCountTextBlock, OpenDownloadDirButton });
+        statusStrip1.Items.AddRange(new ToolStripItem[] { ModCountTextBlock });
         statusStrip1.Location = new Point(0, 540);
         statusStrip1.Name = "statusStrip1";
         statusStrip1.Size = new Size(1000, 22);
@@ -136,6 +173,8 @@ partial class Form1
         ClientSize = new Size(1000, 562);
         Controls.Add(statusStrip1);
         Controls.Add(listView1);
+        Controls.Add(searchPanel);
+        Controls.Add(alphabetPanel);
         Controls.Add(toolStrip1);
         Name = "Form1";
         Text = "游戏修改器下载工具";

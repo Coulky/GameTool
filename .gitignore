@@ -1,0 +1,43 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.cache
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/[Oo]bj/
+
+# User specific files
+*.rsuser
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# .NET Core
+*.dll
+*.exe
+*.pdb
+*.obj
+*.cache
+*.runtimeconfig.dev.json
+
+# WebView2 cache
+**/WebView2/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python/
+env/
+venv/
