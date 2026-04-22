@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using GameTrainersManager.Models;
 using HtmlAgilityPack;
@@ -84,13 +85,27 @@ namespace GameTrainersManager.Utils
             {
                 if (File.Exists(configFile))
                 {
+                    Logger.WriteLine($"加载配置文件: {configFile}");
                     var configContent = File.ReadAllText(configFile);
                     var config = JsonConvert.DeserializeObject<Config>(configContent);
                     if (config != null)
                     {
                         modsDir = config.DownloadDirectory ?? modsDir;
+                        // 记录加载的缓存文件中的每个修改器的 URL
+                        if (config.Mods != null)
+                        {
+                            Logger.WriteLine($"加载的修改器数量: {config.Mods.Count}");
+                            foreach (var mod in config.Mods)
+                            {
+                                Logger.WriteLine($"修改器: {mod.Name}, URL: {mod.Url}");
+                            }
+                        }
                         return config;
                     }
+                }
+                else
+                {
+                    Logger.WriteLine($"配置文件不存在: {configFile}");
                 }
             }
             catch (Exception ex)
@@ -115,6 +130,14 @@ namespace GameTrainersManager.Utils
             Logger.WriteLine("========== 方法: SaveConfig 开始 ==========");
             try
             {
+                // 记录缓存文件中的每个修改器的 URL
+                Logger.WriteLine($"保存配置文件: {configFile}");
+                Logger.WriteLine($"修改器数量: {modsList.Count}");
+                foreach (var mod in modsList)
+                {
+                    Logger.WriteLine($"修改器: {mod.Name}, URL: {mod.Url}");
+                }
+                
                 var config = new Config
                 {
                     LastUpdated = DateTime.Now.ToString("o"),
@@ -122,6 +145,7 @@ namespace GameTrainersManager.Utils
                     DownloadDirectory = modsDir
                 };
                 File.WriteAllText(configFile, JsonConvert.SerializeObject(config, Formatting.Indented));
+                Logger.WriteLine("配置文件保存成功");
             }
             catch (Exception ex)
             {
@@ -165,18 +189,39 @@ namespace GameTrainersManager.Utils
 
                         if (!exists)
                         {
+                            // 尝试从文件名中提取游戏名
+                            string gameName = Path.GetFileNameWithoutExtension(fileName);
+                            // 去除可能的版本号和 Trainer 后缀
+                            gameName = Regex.Replace(gameName, @"\.v\d+.*", "", RegexOptions.IgnoreCase);
+                            gameName = Regex.Replace(gameName, @"\s*\+\+.*", "", RegexOptions.IgnoreCase);
+                            gameName = Regex.Replace(gameName, @"\s*Trainer.*", "", RegexOptions.IgnoreCase);
+                            gameName = Regex.Replace(gameName, @"\s*\(.*\)", "");
+                            gameName = gameName.Trim();
+                            
                             var newMod = new ModItem
                             {
                                 Id = modsList.Count + 1,
                                 Name = fileName,
+                                Url = string.Empty,
+                                Game = gameName,
                                 FilePath = filePath,
                                 Downloaded = true,
                                 DownloadDate = DateTime.Now.ToString("o")
                             };
                             modsList.Add(newMod);
+                            Logger.WriteLine($"添加新修改器: {fileName} (游戏名: {gameName}, URL: 未设置)");
+                        }
+                        else
+                        {
+                            // 记录现有修改器的 URL
+                            var existingMod = modsList.FirstOrDefault(m => m.FileName == fileName || m.FilePath == filePath);
+                            if (existingMod != null)
+                            {
+                                Logger.WriteLine($"现有修改器: {existingMod.Name}, URL: {existingMod.Url}");
+                            }
                         }
                     }
-
+                    
                     // 重新编号
                     for (int i = 0; i < modsList.Count; i++)
                     {
@@ -399,13 +444,25 @@ namespace GameTrainersManager.Utils
             Logger.WriteLine("========== 方法: CheckModUpdateAsync 开始 ==========");
             try
             {
-                if (string.IsNullOrEmpty(mod.Url))
+                string modUrl = mod.Url;
+                
+                // 如果 Url 为空，尝试通过游戏名字搜索修改器的详情页面
+                if (string.IsNullOrEmpty(modUrl) && !string.IsNullOrEmpty(mod.Game))
                 {
-                    Logger.WriteLine("修改器链接无效，无法检查更新");
-                    return (false, "", "修改器链接无效，无法检查更新");
+                    Logger.WriteLine($"修改器链接未设置，尝试通过游戏名字搜索: {mod.Game}");
+                    // 这里可以实现通过游戏名字搜索修改器的详情页面URL的逻辑
+                    // 由于需要访问外部API，暂时返回错误信息
+                    return (false, "", "修改器链接未设置，无法自动搜索更新。请通过搜索功能重新添加此修改器。");
                 }
                 
-                var (downloadLink, uploadDate, htmlContent) = await GetDownloadLinkAsync(mod.Url);
+                if (string.IsNullOrEmpty(modUrl))
+                {
+                    Logger.WriteLine($"修改器链接无效，无法检查更新: {mod.Name}");
+                    return (false, "", "修改器链接未设置，无法检查更新。请通过搜索功能重新添加此修改器。");
+                }
+                
+                Logger.WriteLine($"开始解析下载页面: {modUrl}");
+                var (downloadLink, uploadDate, htmlContent) = await GetDownloadLinkAsync(modUrl);
                 
                 if (downloadLink != "未知" && !string.IsNullOrEmpty(uploadDate))
                 {
@@ -437,7 +494,7 @@ namespace GameTrainersManager.Utils
             catch (Exception ex)
             {
                 Logger.WriteLine($"检查更新失败: {ex.Message}");
-                return (false, "", ex.Message);
+                return (false, "", $"检查更新失败: {ex.Message}");
             }
             finally
             {
@@ -688,6 +745,7 @@ namespace GameTrainersManager.Utils
         {
             Logger.WriteLine("========== 方法: DownloadFileAsync 开始 ==========");
             Logger.WriteLine($"游戏名: {mod.Game}");
+            Logger.WriteLine($"修改器页面URL: {mod.Url}");
             Logger.WriteLine($"下载链接: {downloadLink}");
             Logger.WriteLine($"上传日期: {uploadDate}");
             try
@@ -795,7 +853,7 @@ namespace GameTrainersManager.Utils
                     existingMod.FilePath = savePath;
                     existingMod.FileName = downloadedFileName;
                     existingMod.UploadDate = uploadDate;
-                    Logger.WriteLine($"更新现有修改器记录: {existingMod.Name}");
+                    Logger.WriteLine($"更新现有修改器记录: {existingMod.Game}");
                 }
                 else
                 {
@@ -814,11 +872,12 @@ namespace GameTrainersManager.Utils
                         UploadDate = uploadDate
                     };
                     modsList.Add(newMod);
-                    Logger.WriteLine($"添加新修改器记录: {newMod.Name}");
+                    Logger.WriteLine($"添加新修改器记录: {newMod.Game}");
                 }
                 
-                // 保存配置
-                SaveConfig(Path.Combine(modsDir, "mods_config.json"), modsList, modsDir);
+                // 保存配置到与 LoadModsList 方法相同的配置文件路径
+                string configFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+                SaveConfig(configFile, modsList, modsDir);
                 Logger.WriteLine("保存配置文件");
                 
                 return savePath;
