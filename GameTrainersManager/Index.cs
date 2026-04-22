@@ -8,8 +8,9 @@ using System.Threading.Tasks;
 using System.Web;
 using Newtonsoft.Json;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.WinForms;
+using GameTrainersManager.Utils;
+using GameTrainersManager.Models;
+
 
 namespace GameTrainersManager;
 
@@ -28,7 +29,7 @@ public partial class Index : Form
     public event EventHandler<FlingtrainerMod>? DownloadCompleted;
 
     // 控件声明
-    private System.Windows.Forms.ListView? listView1;
+    private System.Windows.Forms.ListView? localModsListView;
     private System.Windows.Forms.ColumnHeader? columnHeader2;
     private System.Windows.Forms.ColumnHeader? columnHeader8;
     private System.Windows.Forms.ColumnHeader? columnHeader6;
@@ -38,8 +39,7 @@ public partial class Index : Form
     private System.Windows.Forms.ToolStripButton? OpenDownloadDirButton;
     private System.Windows.Forms.ToolStripButton? FindModsButton;
     
-    // WebView2控件声明（隐藏使用）
-    private WebView2? webView;
+
 
     public Index()
     {
@@ -59,8 +59,7 @@ public partial class Index : Form
             Logger.WriteLine($"图标加载失败: {ex.Message}");
         }
         
-        // 初始化WebView2（隐藏使用）
-        InitializeWebView();
+
         
         // 默认下载路径为 library 目录
         modsDir = Path.Combine(baseDir, "library");
@@ -68,139 +67,7 @@ public partial class Index : Form
         _setup(); // 调用同步方法
     }
     
-    private async void InitializeWebView()
-        {
-            try
-            {
-                // 检查WebView2运行时是否已安装
-                if (!await IsWebView2RuntimeInstalled())
-                {
-                    // 提示用户安装WebView2运行时
-                    var result = MessageBox.Show("WebView2运行时未安装，需要下载并安装它以继续使用此应用程序。\n\n是否立即下载并安装WebView2运行时？", 
-                        "WebView2运行时未安装", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    
-                    if (result == DialogResult.Yes)
-                    {
-                        // 下载并安装WebView2运行时
-                        await InstallWebView2Runtime();
-                    }
-                    else
-                    {
-                        MessageBox.Show("WebView2运行时未安装，某些功能将不可用。", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-                }
-                
-                // 创建WebView2实例
-                webView = new WebView2
-                {
-                    Dock = DockStyle.Fill,
-                    Visible = false // 隐藏浏览器控件
-                };
-                
-                // 将WebView添加到窗体中（但不可见）
-                this.Controls.Add(webView);
-                
-                // 配置WebView2环境
-                var env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(baseDir, "WebView2Cache"), new CoreWebView2EnvironmentOptions
-                {
-                    // 启用JavaScript
-                    AdditionalBrowserArguments = "--enable-javascript --disable-popup-blocking"
-                });
-                
-                // 初始化WebView2环境
-                await webView.EnsureCoreWebView2Async(env);
-                
-                // 配置WebView2设置
-                if (webView.CoreWebView2 != null)
-                {
-                    // 设置User-Agent
-                    webView.CoreWebView2.Settings.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
-                    
-                    // 清除缓存，确保每次都是新会话
-                    try
-                    {
-                        await webView.CoreWebView2.Profile.ClearBrowsingDataAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.WriteLine($"清除缓存失败: {ex.Message}");
-                    }
-                }
-                
-                Logger.WriteLine("WebView2初始化成功");
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteLine($"WebView2初始化失败: {ex.Message}");
-                MessageBox.Show($"WebView2初始化失败: {ex.Message}\n\n请确保已安装WebView2运行时。\nhttps://developer.microsoft.com/microsoft-edge/webview2/", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        
-        // 检查WebView2运行时是否已安装
-        private async Task<bool> IsWebView2RuntimeInstalled()
-        {
-            try
-            {
-                // 尝试创建CoreWebView2环境，如果成功则表示运行时已安装
-                var env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(baseDir, "WebView2Cache"));
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteLine($"检查WebView2运行时失败: {ex.Message}");
-                return false;
-            }
-        }
-        
-        // 下载并安装WebView2运行时
-        private async Task InstallWebView2Runtime()
-        {
-            try
-            {
-                string bootstrapperPath = Path.Combine(baseDir, "MicrosoftEdgeWebView2Setup.exe");
-                
-                // 下载WebView2引导程序
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromMinutes(5);
-                
-                var response = await client.GetAsync("https://go.microsoft.com/fwlink/p/?LinkId=2124703");
-                response.EnsureSuccessStatusCode();
-                
-                using var stream = await response.Content.ReadAsStreamAsync();
-                using var fileStream = new FileStream(bootstrapperPath, FileMode.Create);
-                await stream.CopyToAsync(fileStream);
-                
-                // 运行引导程序进行安装
-                var processStartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = bootstrapperPath,
-                    Arguments = " /silent /install",
-                    UseShellExecute = true
-                };
-                
-                var process = System.Diagnostics.Process.Start(processStartInfo);
-                if (process != null)
-                {
-                    // 等待安装完成
-                    process.WaitForExit();
-                    
-                    // 清理引导程序
-                    if (File.Exists(bootstrapperPath))
-                    {
-                        File.Delete(bootstrapperPath);
-                    }
-                    
-                    MessageBox.Show("WebView2运行时安装成功，请重启应用程序。", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    Application.Exit();
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteLine($"安装WebView2运行时失败: {ex.Message}");
-                MessageBox.Show($"安装WebView2运行时失败: {ex.Message}\n\n请手动下载并安装WebView2运行时：\nhttps://developer.microsoft.com/microsoft-edge/webview2/", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
+
 
     private void _setup()
     {
@@ -226,167 +93,146 @@ public partial class Index : Form
             _loadConfig();
         }
 
-        // 扫描下载目录中的修改器文件
-        ScanModsDirectory();
-
-        UpdateModsListView();
-    }
-
-    private void ScanModsDirectory()
-    {
-        try
-        {
-            // 获取下载目录中的所有可执行文件
-            if (!string.IsNullOrEmpty(modsDir))
-            {
-                var modFiles = Directory.GetFiles(modsDir, "*.exe");
-                
-                foreach (var filePath in modFiles)
-                {
-                    var fileName = Path.GetFileName(filePath);
-                    // 检查该文件是否已经在 modsList 中
-                    if (modsList != null)
-                    {
-                        bool exists = modsList.Any(mod => mod != null && (!string.IsNullOrEmpty(mod.FilePath) && mod.FilePath == filePath || !string.IsNullOrEmpty(mod.Name) && mod.Name.Equals(fileName, StringComparison.OrdinalIgnoreCase)));
-                        
-                        if (!exists)
-                        {
-                            // 创建新的 ModItem
-                            var newMod = new ModItem
-                            {
-                                Id = modsList.Count + 1,
-                                Name = fileName,
-                                FilePath = filePath,
-                                Downloaded = true,
-                                DownloadDate = DateTime.Now.ToString("o")
-                            };
-                            modsList.Add(newMod);
-                        }
-                    }
-                }
-                
-                // 重新编号
-                if (modsList != null)
-                {
-                    for (int i = 0; i < modsList.Count; i++)
-                    {
-                        modsList[i].Id = i + 1;
-                    }
-                    
-                    // 保存配置
-                    _saveConfig();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.WriteLine($"扫描修改器目录失败: {ex.Message}");
-        }
+        // 加载修改器列表（加载配置、扫描目录、保存配置）
+        LoadModsList();
     }
 
     private void _loadConfig()
     {
-        try
+        var config = ModManager.LoadConfig(configFile, ref modsDir);
+        if (config != null)
         {
-            var configContent = File.ReadAllText(configFile);
-            var config = JsonConvert.DeserializeObject<Config>(configContent);
-            if (config != null)
-            {
-                modsList = config.Mods ?? new List<ModItem>();
-                modsDir = config.DownloadDirectory ?? modsDir;
-            }
-            else
-            {
-                modsList = new List<ModItem>();
-            }
-            allModsList = new List<FlingtrainerMod>(); // 初始化所有修改器库列表
+            modsList = config.Mods ?? new List<ModItem>();
         }
-        catch (Exception ex)
+        else
         {
-            Logger.WriteLine($"加载配置文件失败: {ex.Message}");
             modsList = new List<ModItem>();
-            allModsList = new List<FlingtrainerMod>();
         }
+        allModsList = new List<FlingtrainerMod>();
     }
 
     private void _saveConfig()
     {
-        try
+        if (modsList != null)
         {
-            var config = new Config
-            {
-                LastUpdated = DateTime.Now.ToString("o"),
-                Mods = modsList,
-                DownloadDirectory = modsDir
-            };
-            File.WriteAllText(configFile, JsonConvert.SerializeObject(config, Formatting.Indented));
-        }
-        catch (Exception ex)
-        {
-            Logger.WriteLine($"保存配置文件失败: {ex.Message}");
+            ModManager.SaveConfig(configFile, modsList, modsDir);
         }
     }
 
-    private void UpdateModsListView()
+    private void ScanModsDirectory()
     {
-        // 设置我的修改器视图的列
-        SetupMyModsColumns();
-
-        if (listView1 != null)
+        if (modsList != null)
         {
-            listView1.Items.Clear();
+            ModManager.ScanModsDirectory(modsDir, modsList);
+            _saveConfig();
+        }
+    }
 
-            if (modsList != null)
+    /// <summary>
+    /// 加载修改器列表
+    /// </summary>
+    private void LoadModsList()
+    {
+        if (modsList != null)
+        {
+            ModManager.LoadModsList(configFile, ref modsDir, modsList);
+            
+            // 设置我的修改器视图的列
+            SetupMyModsColumns();
+
+            if (localModsListView != null)
             {
-                // 检查并移除文件不存在的修改器
-                List<ModItem> modsToRemove = new List<ModItem>();
-                foreach (var mod in modsList)
+                localModsListView.Items.Clear();
+
+                if (modsList != null)
                 {
-                    if (mod != null && mod.Downloaded && !string.IsNullOrEmpty(mod.FilePath))
+                    // 检查并移除文件不存在的修改器
+                    List<ModItem> modsToRemove = new List<ModItem>();
+                    foreach (var mod in modsList)
                     {
-                        if (!File.Exists(mod.FilePath))
+                        if (mod != null && mod.Downloaded && !string.IsNullOrEmpty(mod.FilePath))
                         {
-                            modsToRemove.Add(mod);
+                            if (!File.Exists(mod.FilePath))
+                            {
+                                modsToRemove.Add(mod);
+                            }
                         }
                     }
-                }
 
-                // 从缓存中移除
-                if (modsToRemove.Count > 0)
-                {
-                    foreach (var modToRemove in modsToRemove)
+                    // 从缓存中移除
+                    if (modsToRemove.Count > 0)
                     {
-                        modsList.Remove(modToRemove);
+                        foreach (var modToRemove in modsToRemove)
+                        {
+                            modsList.Remove(modToRemove);
+                        }
+                        // 重新编号
+                        for (int i = 0; i < modsList.Count; i++)
+                        {
+                            modsList[i].Id = i + 1;
+                        }
+                        // 保存配置
+                        _saveConfig();
                     }
-                    // 重新编号
-                    for (int i = 0; i < modsList.Count; i++)
-                    {
-                        modsList[i].Id = i + 1;
-                    }
-                    // 保存配置
-                    _saveConfig();
-                }
 
-                // 显示修改器列表
-                foreach (var mod in modsList)
-                {
-                    if (mod != null)
+                    // 显示修改器列表
+                    foreach (var mod in modsList)
                     {
-                        // 优先显示配置中的游戏名字，如果没有才会显示修改器文件名字
-                        string displayName = !string.IsNullOrEmpty(mod.Game) && !string.IsNullOrEmpty(mod.Name) ? $"{mod.Game}" : (mod.Name ?? "");
-                        var item = new ListViewItem(displayName);
-                        item.SubItems.Add("启动");
-                        item.SubItems.Add("检查更新");
-                        item.SubItems.Add("删除");
-                        listView1.Items.Add(item);
+                        if (mod != null)
+                        {
+                            // 优先显示配置中的游戏名字，如果没有才会显示修改器文件名字
+                            string displayName = !string.IsNullOrEmpty(mod.Game) && !string.IsNullOrEmpty(mod.Name) ? $"{mod.Game}" : (mod.Name ?? "");
+                            var item = new ListViewItem(displayName);
+                            item.SubItems.Add("启动");
+                            item.SubItems.Add("检查更新");
+                            item.SubItems.Add("删除");
+                            localModsListView.Items.Add(item);
+                        }
                     }
-                }
 
-                if (ModCountTextBlock != null)
-                {
-                    ModCountTextBlock.Text = $"修改器数量: {modsList.Count}";
+                    if (ModCountTextBlock != null)
+                    {
+                        ModCountTextBlock.Text = $"修改器数量: {modsList.Count}";
+                    }
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// 清空修改器列表
+    /// </summary>
+    private void ClearModsList()
+    {
+        Logger.WriteLine("========== 方法: ClearModsList 开始 ==========");
+        try
+        {
+            // 调用 ModManager 中的 ClearModsList 方法
+            if (modsList != null)
+            {
+                ModManager.ClearModsList(configFile, modsList);
+            }
+            
+            // // 清空界面上的项目
+            // if (localModsListView != null)
+            // {
+            //     localModsListView.Items.Clear();
+            //     Logger.WriteLine("界面修改器列表已清空");
+            // }
+            
+            // 更新界面显示
+            if (ModCountTextBlock != null)
+            {
+                ModCountTextBlock.Text = "修改器库: 0 个修改器";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.WriteLine($"清空修改器列表失败: {ex.Message}");
+        }
+        finally
+        {
+            Logger.WriteLine("========== 方法: ClearModsList 结束 ==========");
         }
     }
 
@@ -406,7 +252,7 @@ public partial class Index : Form
                 return;
             }
             
-            var (downloadLink, uploadDate, htmlContent) = await GetDownloadLinkAsync(mod.Url);
+            var (downloadLink, uploadDate, htmlContent) = await ModManager.GetDownloadLinkAsync(mod.Url);
             
             if (downloadLink != "未知")
             {
@@ -438,7 +284,7 @@ public partial class Index : Form
                     ModCountTextBlock.Text = $"正在下载: {mod.Name}...";
                 }
                 
-                await DownloadFileAsync(mod, downloadLink, uploadDate);
+                await ModManager.DownloadFileAsync(mod, downloadLink, uploadDate, modsDir, modsList);
             }
             else
             {
@@ -489,7 +335,7 @@ public partial class Index : Form
             }
             
             Logger.WriteLine("正在获取下载链接...");
-            var (downloadLink, uploadDate, htmlContent) = await GetDownloadLinkAsync(mod.Url);
+            var (downloadLink, uploadDate, htmlContent) = await ModManager.GetDownloadLinkAsync(mod.Url);
             Logger.WriteLine($"获取到下载链接: {downloadLink}");
             Logger.WriteLine($"上传日期: {uploadDate}");
             
@@ -526,14 +372,41 @@ public partial class Index : Form
                 }
                 
                 Logger.WriteLine("开始下载文件...");
-                await DownloadFileAsync(mod, downloadLink, uploadDate);
+                await ModManager.DownloadFileAsync(mod, downloadLink, uploadDate, modsDir, modsList);
                 Logger.WriteLine("下载完成");
+                
+                // 刷新文件目录
+                LoadModsList();
+                
+                // 重新加载所有修改器列表，确保显示最新的下载状态
+                var updatedMods = await GetModsFromFlingtrainerCSharpAsync();
+                if (updatedMods != null)
+                {
+                    allModsList = updatedMods;
+                }
+                
+                // 更新列表视图
+                UpdateLibraryListView();
+                if (ModCountTextBlock != null)
+                {
+                    ModCountTextBlock.Text = $"修改器库: {(allModsList != null ? allModsList.Count : 0)} 个修改器";
+                }
                 
                 if (statusLabel != null)
                 {
                     statusLabel.Text = $"下载完成: {mod.Game}";
                     Logger.WriteLine("状态更新: 下载完成");
                 }
+                
+                // 显示下载完成消息
+                MessageBox.Show($"下载完成: {mod.Name}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                // 清空修改器列表，然后重新加载
+                ClearModsList();
+                LoadModsList();
+                
+                // 触发下载完成事件
+                DownloadCompleted?.Invoke(this, mod);
             }
             else
             {
@@ -563,305 +436,18 @@ public partial class Index : Form
         }
     }
     
-    // 静态HttpClientHandler和HttpClient，用于管理Cookie
-    private static readonly HttpClientHandler DownloadHandler = new HttpClientHandler
-    {
-        CookieContainer = new System.Net.CookieContainer(), // 必须开启Cookie存储
-        UseCookies = true,
-        AllowAutoRedirect = true // 允许自动重定向
-    };
-    
-    private static readonly HttpClient DownloadClient = new HttpClient(DownloadHandler)
-    {
-        Timeout = TimeSpan.FromMinutes(10)
-    };
-    
-    // 在初始化时设置默认的User-Agent
-    static Index()
-    {
-        DownloadClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-    }
-    
-    private async Task DownloadFileAsync(FlingtrainerMod mod, string downloadLink, string uploadDate)
-    {
-        Logger.WriteLine("========== 方法: DownloadFileAsync 开始 ==========");
-        Logger.WriteLine($"游戏名: {mod.Game}");
-        Logger.WriteLine($"下载链接: {downloadLink}");
-        Logger.WriteLine($"上传日期: {uploadDate}");
-        try
-        {
-            if (webView == null || webView.CoreWebView2 == null)
-            {
-                MessageBox.Show("WebView2未初始化，请重启程序。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            
-            // 设置下载完成标志
-            var downloadCompleted = new TaskCompletionSource<bool>();
-            string? downloadedFilePath = null;
-            
-            // 确保下载目录存在
-            if (!string.IsNullOrEmpty(modsDir))
-            {
-                if (!Directory.Exists(modsDir))
-                {
-                    Directory.CreateDirectory(modsDir);
-                }
-            }
-            
-            // 添加下载事件处理
-            EventHandler<CoreWebView2DownloadStartingEventArgs>? downloadHandler = null;
-            downloadHandler = (sender, e) =>
-            {
-                Logger.WriteLine($"下载开始: {e.ResultFilePath}");
-                
-                // 设置下载路径
-                if (!string.IsNullOrEmpty(modsDir))
-                {
-                    var fileName = Path.GetFileName(e.ResultFilePath);
-                    string savePath = Path.Combine(modsDir!, fileName);
-                    e.ResultFilePath = savePath;
-                    downloadedFilePath = savePath;
-                    Logger.WriteLine($"文件将保存到: {savePath}");
-                }
-                
-                // 监听下载完成事件
-                e.DownloadOperation.StateChanged += (s, args) =>
-                {
-                    Logger.WriteLine($"下载状态: {e.DownloadOperation.State}");
-                    if (e.DownloadOperation.State == CoreWebView2DownloadState.Completed)
-                    {
-                        Logger.WriteLine($"下载完成: {e.DownloadOperation.ResultFilePath}");
-                        downloadCompleted.SetResult(true);
-                        // 移除事件处理
-                        if (webView.CoreWebView2 != null)
-                        {
-                            webView.CoreWebView2.DownloadStarting -= downloadHandler;
-                        }
-                    }
-                    else if (e.DownloadOperation.State == CoreWebView2DownloadState.Interrupted)
-                    {
-                        Logger.WriteLine($"下载中断: {e.DownloadOperation.InterruptReason}");
-                        downloadCompleted.SetResult(false);
-                        // 移除事件处理
-                        if (webView.CoreWebView2 != null)
-                        {
-                            webView.CoreWebView2.DownloadStarting -= downloadHandler;
-                        }
-                    }
-                };
-            };
-            webView.CoreWebView2.DownloadStarting += downloadHandler;
-            
-            // 第一步：访问训练器主页
-            if (!string.IsNullOrEmpty(mod.Url))
-            {
-                Logger.WriteLine($"1. 正在访问主页 {mod.Url}...");
-                var tcs1 = new TaskCompletionSource<bool>();
-                
-                // 添加导航完成事件
-                EventHandler<CoreWebView2NavigationCompletedEventArgs>? homeNavHandler = null;
-                homeNavHandler = (sender, e) =>
-                {
-                    webView.NavigationCompleted -= homeNavHandler;
-                    tcs1.SetResult(e.IsSuccess);
-                };
-                webView.NavigationCompleted += homeNavHandler;
-                
-                webView.CoreWebView2.Navigate(mod.Url);
-                var success1 = await tcs1.Task;
-                
-                if (!success1)
-                {
-                    Logger.WriteLine($"访问主页失败: {mod.Url}");
-                }
-                else
-                {
-                    Logger.WriteLine($"   主页访问成功");
-                }
-                
-                // 等待页面完全加载
-                await Task.Delay(5000);
-            }
-            
-            // 第二步：模拟点击下载按钮
-            Logger.WriteLine($"2. 正在模拟点击下载按钮...");
-            
-            // 等待页面完全加载后，模拟点击下载按钮
-            await Task.Delay(2000);
-            
-            // 尝试多种点击方式
-            var clickScripts = new string[]
-            {
-                // 方式1：点击包含下载链接的a标签
-                "var links = document.querySelectorAll('a[href*=\"download-trainer.php\"]'); if(links.length > 0) links[0].click();",
-                
-                // 方式2：点击包含下载链接的按钮或div
-                "var elements = document.querySelectorAll('[onclick*=\"download-trainer.php\"], .download-btn, .download-button, .btn-download'); if(elements.length > 0) elements[0].click();",
-                
-                // 方式3：点击包含download关键词的元素
-                "var elements = document.querySelectorAll('*'); for(var i=0; i<elements.length; i++) { if(elements[i].textContent && elements[i].textContent.toLowerCase().includes('download')) { elements[i].click(); break; } }"
-            };
-            
-            bool clickSuccess = false;
-            foreach (var script in clickScripts)
-            {
-                try
-                {
-                    Logger.WriteLine($"尝试执行点击脚本: {script.Substring(0, Math.Min(50, script.Length))}...");
-                    await webView.CoreWebView2.ExecuteScriptAsync(script);
-                    
-                    // 等待点击后的反应
-                    await Task.Delay(3000);
-                    
-                    // 检查是否触发了下载
-                    if (downloadCompleted.Task.IsCompleted)
-                    {
-                        clickSuccess = true;
-                        Logger.WriteLine("点击成功，下载已开始");
-                        break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.WriteLine($"点击脚本执行失败: {ex.Message}");
-                }
-            }
-            
-            // 如果模拟点击失败，使用直接导航方式
-            if (!clickSuccess)
-            {
-                Logger.WriteLine($"3. 模拟点击失败，使用直接下载链接: {downloadLink}");
-                
-                // 添加导航完成事件
-                EventHandler<CoreWebView2NavigationCompletedEventArgs>? navHandler = null;
-                navHandler = (sender, e) =>
-                {
-                    webView.NavigationCompleted -= navHandler;
-                    Logger.WriteLine($"导航完成: {e.IsSuccess}");
-                };
-                webView.NavigationCompleted += navHandler;
-                
-                // 直接导航到下载链接
-                webView.CoreWebView2.Navigate(downloadLink);
-            }
-            
-            // 等待下载完成（最多等待120秒）
-            var timeoutTask = Task.Delay(120000);
-            var completedTask = await Task.WhenAny(downloadCompleted.Task, timeoutTask);
-            
-            if (completedTask == timeoutTask)
-            {
-                Logger.WriteLine("下载超时");
-                throw new Exception("下载超时");
-            }
-            
-            var downloadSuccess = await downloadCompleted.Task;
-            if (!downloadSuccess)
-            {
-                Logger.WriteLine("下载失败或被中断");
-                throw new Exception("下载失败或被中断");
-            }
-            
-            // 验证文件是否存在且大小大于0
-            if (string.IsNullOrEmpty(downloadedFilePath) || !File.Exists(downloadedFilePath) || new FileInfo(downloadedFilePath).Length == 0)
-            {
-                Logger.WriteLine("下载的文件不存在或为空");
-                throw new Exception("下载的文件不存在或为空");
-            }
-            
-            Logger.WriteLine($"下载完成: {downloadedFilePath}");
-            
-            // 更新 mod 对象
-            mod.DownloadUrl = downloadLink;
-            mod.UploadDate = uploadDate;
-            mod.IsDownloaded = true;
-            
-            // 添加到已下载列表
-            if (modsList != null)
-            {
-                string downloadedFileName = !string.IsNullOrEmpty(downloadedFilePath) ? Path.GetFileName(downloadedFilePath) : mod.Name;
 
-                // 检查是否已存在相同游戏的修改器
-                var existingMod = modsList.FirstOrDefault(m => m.Game == mod.Game);
-                if (existingMod != null)
-                {
-                    // 更新现有记录
-                    existingMod.Name = mod.Name;
-                    existingMod.Url = mod.Url;
-                    existingMod.AddedDate = DateTime.Now.ToString("o");
-                    existingMod.Downloaded = true;
-                    existingMod.DownloadDate = DateTime.Now.ToString("yyyy-MM-dd");
-                    existingMod.FilePath = downloadedFilePath;
-                    existingMod.FileName = downloadedFileName;
-                    existingMod.UploadDate = uploadDate;
-                }
-                else
-                {
-                    // 添加新记录
-                    var newMod = new ModItem
-                    {
-                        Id = modsList.Count + 1,
-                        Name = mod.Name,
-                        Url = mod.Url,
-                        Game = mod.Game,
-                        AddedDate = DateTime.Now.ToString("o"),
-                        Downloaded = true,
-                        DownloadDate = DateTime.Now.ToString("yyyy-MM-dd"),
-                        FilePath = downloadedFilePath,
-                        FileName = downloadedFileName,
-                        UploadDate = uploadDate
-                    };
-                    modsList.Add(newMod);
-                }
+    
 
-                _saveConfig();
-                
-                // 刷新文件目录
-                ScanModsDirectory();
-                
-                // 重新加载所有修改器列表，确保显示最新的下载状态
-                var updatedMods = await GetModsFromFlingtrainerCSharpAsync();
-                if (updatedMods != null)
-                {
-                    allModsList = updatedMods;
-                }
-                
-                // 更新列表视图
-                UpdateLibraryListView();
-                if (ModCountTextBlock != null)
-                {
-                    ModCountTextBlock.Text = $"修改器库: {(allModsList != null ? allModsList.Count : 0)} 个修改器";
-                }
-                MessageBox.Show($"下载完成: {mod.Name}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                
-                // 触发下载完成事件
-                DownloadCompleted?.Invoke(this, mod);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.WriteLine($"下载文件失败: {ex.Message}");
-            MessageBox.Show($"下载文件失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            if (ModCountTextBlock != null)
-            {
-                ModCountTextBlock.Text = "下载失败";
-            }
-        }
-        finally
-        {
-            Logger.WriteLine("========== 方法: DownloadFileAsync 结束 ==========");
-        }
-    }
 
     private void UpdateLibraryListView()
     {
         // 设置修改器库视图的列
         SetupLibraryColumns();
 
-        if (listView1 != null)
+        if (localModsListView != null)
         {
-            listView1.Items.Clear();
+            localModsListView.Items.Clear();
 
             if (modsList != null && modsList.Count > 0)
             {
@@ -890,7 +476,7 @@ public partial class Index : Form
 
                         item.SubItems.Add(statusText);
                         item.SubItems.Add(buttonText);
-                        listView1.Items.Add(item);
+                        localModsListView.Items.Add(item);
                     }
                 }
                 if (ModCountTextBlock != null)
@@ -904,7 +490,7 @@ public partial class Index : Form
                 var item = new ListViewItem("未找到修改器");
                 item.SubItems.Add("");
                 item.SubItems.Add("");
-                listView1.Items.Add(item);
+                localModsListView.Items.Add(item);
                 if (ModCountTextBlock != null)
                 {
                     ModCountTextBlock.Text = "修改器库: 0 个修改器";
@@ -916,30 +502,30 @@ public partial class Index : Form
 
     private void SetupMyModsColumns()
     {
-        if (listView1 != null)
+        if (localModsListView != null)
         {
-            listView1.Columns.Clear();
+            localModsListView.Columns.Clear();
             if (columnHeader2 != null)
             {
-                listView1.Columns.Add(columnHeader2); // 游戏名
+                localModsListView.Columns.Add(columnHeader2); // 游戏名
                 columnHeader2.Text = "游戏名";
                 columnHeader2.Width = 300;
             }
             if (columnHeader6 != null)
             {
-                listView1.Columns.Add(columnHeader6); // 启动
+                localModsListView.Columns.Add(columnHeader6); // 启动
                 columnHeader6.Text = "启动";
                 columnHeader6.Width = 80;
             }
             if (columnHeader8 != null)
             {
-                listView1.Columns.Add(columnHeader8); // 检查更新
+                localModsListView.Columns.Add(columnHeader8); // 检查更新
                 columnHeader8.Text = "检查更新";
                 columnHeader8.Width = 80;
             }
             if (columnHeader3 != null)
             {
-                listView1.Columns.Add(columnHeader3); // 删除
+                localModsListView.Columns.Add(columnHeader3); // 删除
                 columnHeader3.Text = "删除";
                 columnHeader3.Width = 80;
             }
@@ -948,18 +534,18 @@ public partial class Index : Form
 
     private void SetupLibraryColumns()
     {
-        if (listView1 != null)
+        if (localModsListView != null)
         {
-            listView1.Columns.Clear();
+            localModsListView.Columns.Clear();
             if (columnHeader2 != null)
             {
-                listView1.Columns.Add(columnHeader2); // 游戏
+                localModsListView.Columns.Add(columnHeader2); // 游戏
                 columnHeader2.Text = "游戏";
                 columnHeader2.Width = 300;
             }
             if (columnHeader8 != null)
             {
-                listView1.Columns.Add(columnHeader8); // 操作
+                localModsListView.Columns.Add(columnHeader8); // 操作
                 columnHeader8.Text = "操作";
                 columnHeader8.Width = 80;
             }
@@ -970,9 +556,9 @@ public partial class Index : Form
     {
         // 表单加载时的初始化操作
         // 添加列表视图的点击事件处理
-        if (listView1 != null)
+        if (localModsListView != null)
         {
-            listView1.MouseClick += ListView1_MouseClick;
+            localModsListView.MouseClick += LocalModsListView_MouseClick;
         }
         
         // 初始化过滤列表
@@ -989,23 +575,23 @@ public partial class Index : Form
         searchForm.ShowDialog();
     }
 
-    private void ListView1_MouseClick(object? sender, MouseEventArgs e)
+    private void LocalModsListView_MouseClick(object? sender, MouseEventArgs e)
     {
         // 获取点击的位置
-        if (listView1 != null)
+        if (localModsListView != null)
         {
-            var hitTest = listView1.HitTest(e.Location);
+            var hitTest = localModsListView.HitTest(e.Location);
             if (hitTest.Item != null)
             {
                 // 获取点击的列索引
                 int columnIndex = -1;
                 int x = 0;
-                foreach (ColumnHeader column in listView1.Columns)
+                foreach (ColumnHeader column in localModsListView.Columns)
                 {
                     x += column.Width;
                     if (e.X < x)
                     {
-                        columnIndex = listView1.Columns.IndexOf(column);
+                        columnIndex = localModsListView.Columns.IndexOf(column);
                         break;
                     }
                 }
@@ -1016,7 +602,7 @@ public partial class Index : Form
                     // 修改器库视图 - 处理下载按钮点击
                     if (columnIndex == 2) // 下载按钮列 (索引2是第3列)
                     {
-                        int modIndex = listView1.Items.IndexOf(hitTest.Item);
+                        int modIndex = localModsListView.Items.IndexOf(hitTest.Item);
                         // 使用过滤后的列表
                         var displayList = filteredModsList != null && filteredModsList.Count > 0 ? filteredModsList : allModsList;
                         if (displayList != null && modIndex >= 0 && modIndex < displayList.Count)
@@ -1064,7 +650,7 @@ public partial class Index : Form
                     // 处理启动按钮点击
                     if (columnIndex == 1) // 启动按钮列
                     {
-                        int modIndex = listView1.Items.IndexOf(hitTest.Item);
+                        int modIndex = localModsListView.Items.IndexOf(hitTest.Item);
                         if (modsList != null && modIndex >= 0 && modIndex < modsList.Count)
                         {
                             var mod = modsList[modIndex];
@@ -1119,7 +705,7 @@ public partial class Index : Form
                     // 处理检查更新按钮点击
                     else if (columnIndex == 2) // 检查更新按钮列
                     {
-                        int modIndex = listView1.Items.IndexOf(hitTest.Item);
+                        int modIndex = localModsListView.Items.IndexOf(hitTest.Item);
                         if (modsList != null && modIndex >= 0 && modIndex < modsList.Count)
                         {
                             var mod = modsList[modIndex];
@@ -1135,7 +721,7 @@ public partial class Index : Form
                     // 处理删除按钮点击
                     else if (columnIndex == 3) // 删除按钮列
                     {
-                        int modIndex = listView1.Items.IndexOf(hitTest.Item);
+                        int modIndex = localModsListView.Items.IndexOf(hitTest.Item);
                         if (modsList != null && modIndex >= 0 && modIndex < modsList.Count)
                         {
                             var mod = modsList[modIndex];
@@ -1164,7 +750,7 @@ public partial class Index : Form
                                 // 保存配置
                                 _saveConfig();
                                 // 更新列表
-                                UpdateModsListView();
+                                LoadModsList();
                                 MessageBox.Show("修改器已删除", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             }
                         }
@@ -1181,11 +767,8 @@ public partial class Index : Form
     private void OpenDownloadDirButton_Click(object sender, EventArgs e)
     {
         // 打开修改器所在的文件夹
-        if (Directory.Exists(modsDir))
-        {
-            System.Diagnostics.Process.Start("explorer.exe", modsDir);
-        }
-        else
+        bool success = ModManager.OpenModsFolder(modsDir);
+        if (!success)
         {
             MessageBox.Show("修改器文件夹不存在", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -1217,7 +800,7 @@ public partial class Index : Form
                 mod.FilePath = filePath;
                 mod.DownloadDate = DateTime.Now.ToString("o");
                 _saveConfig();
-                UpdateModsListView();
+                LoadModsList();
             }
         }
         catch (Exception ex)
@@ -1327,148 +910,46 @@ public partial class Index : Form
         return mods;
     }
     
-    private async Task<string> GetArticlePublishDateAsync(string url)
-    {
-        try
-        {
-            using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromMinutes(2);
-            var response = await client.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-            var htmlContent = await response.Content.ReadAsStringAsync();
 
-            var doc = new HtmlDocument();
-            doc.LoadHtml(htmlContent);
-
-            // 查找文章发布时间 - 优先从meta标签获取
-            var publishDate = "";
-            
-            // 方式1：从meta标签获取article:published_time
-            var metaPublishedTime = doc.DocumentNode.SelectSingleNode("//meta[@property='article:published_time']");
-            if (metaPublishedTime != null)
-            {
-                var datetime = metaPublishedTime.GetAttributeValue("content", "");
-                if (!string.IsNullOrEmpty(datetime))
-                {
-                    // 解析ISO格式的时间，如 "2020-05-02T22:40:54+00:00"
-                    if (DateTime.TryParse(datetime, out var dateTime))
-                    {
-                        publishDate = dateTime.ToString("yyyy-MM");
-                        Logger.WriteLine($"从meta标签获取到发布时间: {publishDate} (原始值: {datetime})");
-                        return publishDate;
-                    }
-                }
-            }
-            
-            // 方式2：从meta标签获取og:published_time
-            var metaOgPublishedTime = doc.DocumentNode.SelectSingleNode("//meta[@property='og:published_time']");
-            if (metaOgPublishedTime != null)
-            {
-                var datetime = metaOgPublishedTime.GetAttributeValue("content", "");
-                if (!string.IsNullOrEmpty(datetime))
-                {
-                    if (DateTime.TryParse(datetime, out var dateTime))
-                    {
-                        publishDate = dateTime.ToString("yyyy-MM");
-                        Logger.WriteLine($"从og:published_time获取到发布时间: {publishDate} (原始值: {datetime})");
-                        return publishDate;
-                    }
-                }
-            }
-            
-            // 方式3：从meta标签获取其他可能的日期属性
-            var dateMetaTags = doc.DocumentNode.SelectNodes("//meta[contains(@property, 'date') or contains(@property, 'time') or contains(@name, 'date') or contains(@name, 'time')]");
-            if (dateMetaTags != null)
-            {
-                foreach (var metaTag in dateMetaTags)
-                {
-                    var content = metaTag.GetAttributeValue("content", "");
-                    if (!string.IsNullOrEmpty(content) && content.Contains("202"))
-                    {
-                        if (DateTime.TryParse(content, out var dateTime))
-                        {
-                            publishDate = dateTime.ToString("yyyy-MM");
-                            Logger.WriteLine($"从meta标签获取到发布时间: {publishDate} (属性: {metaTag.GetAttributeValue("property", metaTag.GetAttributeValue("name", "unknown"))}, 原始值: {content})");
-                            return publishDate;
-                        }
-                    }
-                }
-            }
-            
-            // 方式4：查找 <time> 标签
-            var timeElement = doc.DocumentNode.SelectSingleNode("//time[@datetime]");
-            if (timeElement != null)
-            {
-                var datetime = timeElement.GetAttributeValue("datetime", "");
-                if (!string.IsNullOrEmpty(datetime))
-                {
-                    if (DateTime.TryParse(datetime, out var dateTime))
-                    {
-                        publishDate = dateTime.ToString("yyyy-MM");
-                        Logger.WriteLine($"从time标签获取到发布时间: {publishDate} (原始值: {datetime})");
-                        return publishDate;
-                    }
-                }
-            }
-            
-            Logger.WriteLine("无法从meta标签获取文章发布时间，使用当前时间");
-            return DateTime.Now.ToString("yyyy-MM");
-        }
-        catch (Exception ex)
-        {
-            Logger.WriteLine($"获取文章发布时间失败: {ex.Message}");
-            return DateTime.Now.ToString("yyyy-MM");
-        }
-    }
     
     private async Task CheckModUpdateAsync(ModItem mod)
     {
         try
         {
-            if (string.IsNullOrEmpty(mod.Url))
+            if (ModCountTextBlock != null)
+            {
+                ModCountTextBlock.Text = "正在检查更新...";
+            }
+            
+            var (hasUpdate, latestUploadDate, errorMessage) = await ModManager.CheckModUpdateAsync(mod);
+            
+            if (hasUpdate)
             {
                 if (ModCountTextBlock != null)
                 {
-                    ModCountTextBlock.Text = "修改器链接无效，无法检查更新";
+                    ModCountTextBlock.Text = $"发现新版本: {mod.Name}";
                 }
-                return;
+                var result = MessageBox.Show($"发现新版本，是否更新？", "确认更新", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    _ = GetDownloadLinkAndStartDownloadAsync(new FlingtrainerMod { Name = mod.Name, Game = mod.Game, Url = mod.Url });
+                }
             }
-            
-            var (downloadLink, uploadDate, htmlContent) = await GetDownloadLinkAsync(mod.Url);
-            
-            if (downloadLink != "未知" && !string.IsNullOrEmpty(uploadDate))
+            else if (!string.IsNullOrEmpty(errorMessage) && errorMessage != "已是最新版本")
             {
-                string modUploadMonth = uploadDate.Length >= 7 ? uploadDate.Substring(0, 7) : uploadDate;
-                string existingUploadMonth = mod.UploadDate?.Length >= 7 ? mod.UploadDate.Substring(0, 7) : mod.UploadDate ?? "";
-                
-                if (modUploadMonth != existingUploadMonth)
+                if (ModCountTextBlock != null)
                 {
-                    if (ModCountTextBlock != null)
-                    {
-                        ModCountTextBlock.Text = $"发现新版本: {mod.Name}";
-                    }
-                    var result = MessageBox.Show($"发现新版本，是否更新？", "确认更新", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (result == DialogResult.Yes)
-                    {
-                        _ = GetDownloadLinkAndStartDownloadAsync(new FlingtrainerMod { Name = mod.Name, Game = mod.Game, Url = mod.Url });
-                    }
+                    ModCountTextBlock.Text = errorMessage;
                 }
-                else
-                {
-                    if (ModCountTextBlock != null)
-                    {
-                        ModCountTextBlock.Text = $"{mod.Name} 已是最新版本";
-                    }
-                    MessageBox.Show($"{mod.Name} 已是最新版本", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
+                MessageBox.Show(errorMessage, "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
                 if (ModCountTextBlock != null)
                 {
-                    ModCountTextBlock.Text = "无法获取更新信息";
+                    ModCountTextBlock.Text = $"{mod.Name} 已是最新版本";
                 }
-                MessageBox.Show("无法获取更新信息", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"{mod.Name} 已是最新版本", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
         catch (Exception ex)
@@ -1488,8 +969,8 @@ public partial class Index : Form
         Logger.WriteLine($"URL: {url}");
         try
         {
-            // 使用静态的DownloadClient，确保Cookie共享
-            var response = await DownloadClient.GetAsync(url);
+            // 使用 ModManager 中的 DownloadClient
+            var response = await ModManager.DownloadClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
             var htmlContent = await response.Content.ReadAsStringAsync();
 
@@ -1558,7 +1039,7 @@ public partial class Index : Form
                                     try
                                     {
                                         // 获取文章发布时间
-                                        string articlePublishDate = await GetArticlePublishDateAsync(url);
+                                        string articlePublishDate = await ModManager.GetArticlePublishDateAsync(url);
                                         Logger.WriteLine($"获取到文章发布时间: {articlePublishDate}");
                                         
                                         // 解析日期获取年份和月份
@@ -1657,7 +1138,7 @@ public partial class Index : Form
             };
             modsList.Add(newMod);
             _saveConfig();
-            UpdateModsListView();
+            LoadModsList();
         }
     }
 

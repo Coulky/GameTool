@@ -28,7 +28,7 @@ partial class Index
     /// </summary>
     private void InitializeComponent()
     {
-        listView1 = new ListView();
+        localModsListView = new ListView();
         columnHeader2 = new ColumnHeader();
         columnHeader8 = new ColumnHeader();
         columnHeader6 = new ColumnHeader();
@@ -58,16 +58,16 @@ partial class Index
         FindModsButton.Text = "从远端查找修改器";
         FindModsButton.Click += FindModsButton_Click;
         // 
-        // listView1
+        // localModsListView
         // 
-        listView1.Columns.AddRange(new ColumnHeader[] { columnHeader2, columnHeader8, columnHeader6, columnHeader3 });
-        listView1.FullRowSelect = true;
-        listView1.Location = new Point(10, 10);
-        listView1.Name = "listView1";
-        listView1.Size = new Size(540, 353);
-        listView1.TabIndex = 1;
-        listView1.UseCompatibleStateImageBehavior = false;
-        listView1.View = View.Details;
+        localModsListView.Columns.AddRange(new ColumnHeader[] { columnHeader2, columnHeader8, columnHeader6, columnHeader3 });
+        localModsListView.FullRowSelect = true;
+        localModsListView.Location = new Point(10, 10);
+        localModsListView.Name = "localModsListView";
+        localModsListView.Size = new Size(540, 353);
+        localModsListView.TabIndex = 1;
+        localModsListView.UseCompatibleStateImageBehavior = false;
+        localModsListView.View = View.Details;
         // 
         // columnHeader2
         // 
@@ -110,7 +110,7 @@ partial class Index
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(560, 385);
         Controls.Add(statusStrip1);
-        Controls.Add(listView1);
+        Controls.Add(localModsListView);
         Name = "Index";
         Text = "游戏修改器下载工具";
         Load += Index_Load;
